@@ -35,7 +35,7 @@ def get_argparser():
     parser.add_argument("--data_root", type=str, default='./CityScapesDataset',help="path to Dataset")
     parser.add_argument("--image_size", type=int, default=[512, 512], help="input size")
     parser.add_argument("--ignore_label", type=int, default=255, help="path to Dataset")
-    parser.add_argument("--dataset", type=str, default='cityscapes',choices=['cityscapes'], help='Name of dataset')
+    parser.add_argument("--dataset", type=str, default='cityscapes',choices=['cityscapes','whu'], help='Name of dataset')
     parser.add_argument("--num_classes", type=int, default=19, help="num classes (default: None)")
     parser.add_argument("--pin_mem", type=bool, default=False, help="Dataloader ping_memory")
     parser.add_argument("--batch_size", type=int, default=4,help='batch size (default: 4)') # consume approximately 3G GPU-Memory
@@ -95,8 +95,24 @@ def main(args):
     train_transform = get_train_augmentation(args.image_size, seg_fill=args.ignore_label)
     val_transform = get_val_augmentation(args.image_size)
 
-    train_set = CityScapes(args.data_root, 'train', train_transform)
-    valid_set = CityScapes(args.data_root, 'val', val_transform)
+    # Dataset selection
+    if args.dataset == 'cityscapes':
+        train_set = CityScapes(args.data_root, 'train', train_transform)
+        valid_set = CityScapes(args.data_root, 'val', val_transform)
+    elif args.dataset == 'whu':
+        # WHU is a binary building rooftop dataset
+        try:
+            from datasets.whu import WhuBuildingDataset
+        except Exception as e:
+            raise RuntimeError(f"Failed to import WhuBuildingDataset: {e}")
+
+        # ensure model has correct number of output classes for binary segmentation
+        args.num_classes = 1
+
+        train_set = WhuBuildingDataset(root_dir=args.data_root, split='train', transform=train_transform)
+        valid_set = WhuBuildingDataset(root_dir=args.data_root, split='val', transform=val_transform)
+    else:
+        raise ValueError(f"Unknown dataset: {args.dataset}")
 
     model = make_SegFormerB1(num_classes=args.num_classes)
 
