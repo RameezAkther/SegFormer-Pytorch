@@ -155,15 +155,17 @@ class WhuBuildingDataset(Dataset):
         segs = self._ann_map.get(img_name, [])
         mask = self._create_mask_from_segs(segs, h, w)
 
-        # Convert mask to float32 0/1
-        mask = mask.astype(np.float32)
+        # Convert to torch Tensor format (C, H, W) to match the training pipeline
+        # image: (H, W, C) in uint8 -> (C, H, W) in uint8
+        image = torch.from_numpy(image).permute(2, 0, 1).contiguous()
+        # mask: (H, W) in float32 -> (1, H, W) for compatibility with Compose
+        mask = torch.from_numpy(mask.astype(np.float32)).unsqueeze(0)
 
         if self.transform is not None:
-            aug = self.transform(image=image, mask=mask)
-            image = aug["image"]
-            mask = aug["mask"]
+            # Use positional args for custom Compose class (not albumentations)
+            image, mask = self.transform(image, mask)
 
-        return image, mask
+        return image, mask.squeeze(0)  # Remove channel dim from mask for training script
 
 
 def get_whu_loaders(
