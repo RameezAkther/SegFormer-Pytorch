@@ -131,7 +131,14 @@ def main(args):
 
     iters_per_epoch = len(train_set) // args.batch_size
 
-    loss_fn = get_loss(args.loss_fn_name, train_set.ignore_label, None)
+    # Use appropriate loss function based on dataset
+    if args.dataset == 'whu':
+        # Binary segmentation with BCEWithLogitsLoss
+        loss_fn = torch.nn.BCEWithLogitsLoss()
+    else:
+        # Multi-class segmentation with cross-entropy
+        loss_fn = get_loss(args.loss_fn_name, train_set.ignore_label, None)
+    
     optimizer = get_optimizer(model, args.optimizer, args.lr, args.weight_decay)
 
     # scheduler = get_scheduler(args.lr_scheduler, optimizer, args.epochs * iters_per_epoch, args.lr_power,
