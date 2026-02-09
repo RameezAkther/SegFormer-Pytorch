@@ -52,6 +52,7 @@ class WhuBuildingDataset(Dataset):
         self.split = split
         self.transform = transform
         self.img_exts = img_exts
+        self.ignore_label = 255  # For compatibility with training script (binary seg uses 0/1)
 
         # Determine annotation filename
         ann_name = "validation.json" if split in ("val", "validation") else f"{split}.json"
